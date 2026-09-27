@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Конструктор справки по результатам проверочной работы (с ИИ-генерацией)</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+        margin: 0;
+        padding: 20px;
+        color: #2c3e50;
+    }
+    .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        padding: 30px;
+    }
+    h1 {
+        text-align: center;
+        color: #1a5490;
+        margin-top: 0;
+        font-size: 1.7em;
+    }
+    .block {
+        background: #f7f9fc;
+        border-left: 5px solid #1a5490;
+        padding: 18px 22px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+    }
+    .block.fgos {
+        border-left-color: #8e44ad;
+        background: #faf5fc;
+    }
+    .block.ai {
+        border-left-color: #e67e22;
+        background: #fef6ec;
+    }
+    .block h2 {
+        margin: 0 0 12px 0;
+        color: #1a5490;
+        font-size: 1.15em;
+    }
+    .block.fgos h2 { color: #6c3483; }
+    .block.ai h2 { color: #d35400; }
+    .field { margin-bottom: 14px; }
+    .field label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #34495e;
+    }
+    select {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid #bdc3c7;
+        border-radius: 6px;
+        font-size: 14px;
+        background: #fff;
+        cursor: pointer;
+    }
+    select:focus {
+        outline: none;
+        border-color: #1a5490;
+        box-shadow: 0 0 0 2px rgba(26,84,144,0.2);
+    }
+    .checkbox-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 20px;
+        margin-top: 6px;
+    }
+    .checkbox-group label {
+        font-weight: normal;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #444;
+    }
+    .checkbox-group input[type="checkbox"] {
+        margin-top: 3px;
+        cursor: pointer;
+    }
+    .hint {
+        font-size: 12px;
+        color: #7f8c8d;
+        font-style: italic;
+        margin-top: 4px;
+    }
+    .subfield { margin-top: 10px; }
+    .buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin: 25px 0;
+        flex-wrap: wrap;
+    }
+    button {
+        padding: 12px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-generate { background: #1a5490; color: white; }
+    .btn-generate:hover { background: #123d6b; transform: translateY(-2px); }
+    .btn-ai { background: #e67e22; color: white; }
+    .btn-ai:hover { background: #d35400; transform: translateY(-2px); }
+    .btn-prompt { background: #8e44ad; color: white; }
+    .btn-prompt:hover { background: #6c3483; transform: translateY(-2px); }
+    .btn-word { background: #2980b9; color: white; }
+    .btn-word:hover { background: #1f618d; transform: translateY(-2px); }
+    .btn-clear { background: #ecf0f1; color: #2c3e50; }
+    .btn-clear:hover { background: #d5dbdb; }
+    .btn-copy { background: #27ae60; color: white; }
+    .btn-copy:hover { background: #1e8449; }
+    .output {
+        background: #fffef5;
+        border: 1px dashed #d4ac0d;
+        border-radius: 8px;
+        padding: 20px;
+        min-height: 120px;
+        white-space: pre-wrap;
+        font-family: 'Georgia', serif;
+        line-height: 1.6;
+        font-size: 14px;
+        display: none;
+    }
+    .output.visible { display: block; }
+    .ai-note {
+        background: #fef6ec;
+        border: 1px solid #f0c27a;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin: 15px 0;
+        font-size: 13px;
+        color: #7a4a00;
+    }
+    footer {
+        text-align: center;
+        margin-top: 25px;
+        padding-top: 18px;
+        border-top: 1px solid #ecf0f1;
+        color: #7f8c8d;
+        font-size: 13px;
+    }
+    footer .author {
+        font-weight: 600;
+        color: #1a5490;
+        letter-spacing: 0.5px;
+    }
+    @media (max-width: 600px) {
+        .checkbox-group { grid-template-columns: 1fr; }
+        .container { padding: 18px; }
+        button { padding: 10px 14px; font-size: 13px; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>📋 Конструктор справки по результатам проверочной работы</h1>
+
+    <!-- БЛОК 1 -->
+    <div class="block">
+        <h2>Блок 1. Общая информация (Шапка документа)</h2>
+        <div class="field">
+            <label>1.1. Тип проверочной работы</label>
+            <select id="workType">
+                <option value="Всероссийская проверочная работа (ВПР)">Всероссийская проверочная работа (ВПР)</option>
+                <option value="Итоговая контрольная работа (за четверть / полугодие / год)">Итоговая контрольная работа (за четверть / полугодие / год)</option>
+                <option value="Тематическая контрольная работа (срез знаний)">Тематическая контрольная работа (срез знаний)</option>
+                <option value="Стартовая (входная) контрольная работа">Стартовая (входная) контрольная работа</option>
+                <option value="Пробный экзамен (ОГЭ / ЕГЭ)">Пробный экзамен (ОГЭ / ЕГЭ)</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>1.2. Ступень обучения</label>
+            <select id="educationLevel">
+                <option value="начального общего образования (1–4 классы)">Начальное общее образование (1–4 классы)</option>
+                <option value="основного общего образования (5–9 классы)">Основное общее образование (5–9 классы)</option>
+                <option value="среднего общего образования (10–11 классы)">Среднее общее образование (10–11 классы)</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>1.3. Специфика предмета</label>
+            <select id="subjectType">
+                <option value="гуманитарного цикла">Гуманитарный цикл (Русский язык, Литература, История и др.)</option>
+                <option value="точных наук">Точные науки (Математика, Алгебра, Геометрия, Физика, Информатика)</option>
+                <option value="естественно-научного цикла">Естественно-научный цикл (Биология, Химия, География)</option>
+                <option value="иностранных языков">Иностранные языки</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- БЛОК 2 -->
+    <div class="block">
+        <h2>Блок 2. Статистические показатели</h2>
+        <div class="field">
+            <label>2.1. Уровень успеваемости</label>
+            <select id="successRate">
+                <option value="Абсолютная успеваемость — 100% (неудовлетворительных оценок нет)">Абсолютная успеваемость — 100% (нет неудовлетворительных оценок)</option>
+                <option value="Высокая успеваемость (единичные неудовлетворительные оценки)">Высокая успеваемость (единичные неудовлетворительные оценки)</option>
+                <option value="Низкая успеваемость (большое количество двоек, группа риска)">Низкая успеваемость (большое количество двоек, группа риска)</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>2.2. Качество знаний</label>
+            <select id="quality">
+                <option value="Высокое качество знаний (класс в основном написал на «4» и «5»)">Высокое качество знаний (класс в основном написал на «4» и «5»)</option>
+                <option value="Среднее качество знаний (стабильный средний результат, много троек)">Среднее качество знаний (стабильный средний результат, много троек)</option>
+                <option value="Низкое качество знаний (преобладают оценки «3» и «2»)">Низкое качество знаний (преобладают оценки «3» и «2»)</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>2.3. Соответствие текущим оценкам</label>
+            <select id="correspondence">
+                <option value="Результаты подтвердили текущие оценки учащихся в журнале.">Результаты подтвердили текущие оценки учащихся в журнале</option>
+                <option value="Результаты выше текущих четвертных оценок (завышение в пользу ученика).">Результаты выше текущих четвертных оценок (завышение в пользу ученика)</option>
+                <option value="Результаты ниже текущих четвертных оценок (подтвердилось западание тем).">Результаты ниже текущих четвертных оценок (подтвердилось западание тем)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- БЛОК 3 -->
+    <div class="block">
+        <h2>Блок 3. Качественный анализ</h2>
+        <div class="field">
+            <label>3.1. С какими заданиями класс справился лучше всего</label>
+            <div class="hint">Выберите 1–2 варианта</div>
+            <div class="checkbox-group">
+                <label><input type="checkbox" class="bestTasks" value="Задания базового уровня на знание основных понятий и правил">Задания базового уровня на знание основных понятий и правил</label>
+                <label><input type="checkbox" class="bestTasks" value="Тестовые задания с выбором одного или нескольких правильных ответов">Тестовые задания с выбором одного или нескольких правильных ответов</label>
+                <label><input type="checkbox" class="bestTasks" value="Выполнение вычислений / алгоритмических действий по образцу">Выполнение вычислений / алгоритмических действий по образцу</label>
+                <label><input type="checkbox" class="bestTasks" value="Работа с текстом, извлечение явной информации">Работа с текстом, извлечение явной информации</label>
+                <label><input type="checkbox" class="bestTasks" value="Творческие задания, формулирование собственного мнения">Творческие задания, формулирование собственного мнения</label>
+            </div>
+        </div>
+        <div class="field">
+            <label>3.2. Какие темы/навыки «запали»</label>
+            <div class="hint">Выберите 1–2 варианта</div>
+            <div class="checkbox-group">
+                <label><input type="checkbox" class="weakTopics" value="Трудности со сложными, комплексными задачами повышенного уровня">Трудности со сложными, комплексными задачами повышенного уровня</label>
+                <label><input type="checkbox" class="weakTopics" value="Невнимательность при чтении инструкций к заданиям (глупые ошибки)">Невнимательность при чтении инструкций к заданиям (глупые ошибки)</label>
+                <label><input type="checkbox" class="weakTopics" value="Слабое развитие логического мышления / умения аргументировать ответ">Слабое развитие логического мышления / умения аргументировать ответ</label>
+                <label><input type="checkbox" class="weakTopics" value="Западание конкретных предметных тем (орфография, текстовые задачи, работа со схемами/картами)">Западание конкретных предметных тем (орфография, текстовые задачи, схемы/карты)</label>
+                <label><input type="checkbox" class="weakTopics" value="Низкий самоконтроль учащихся, не успели распределить время на работу">Низкий самоконтроль учащихся, не успели распределить время</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- БЛОК 4 — ФГОС -->
+    <div class="block fgos">
+        <h2>Блок 4. Сформированность планируемых результатов ФГОС</h2>
+        <div class="hint">Формулировки соответствуют требованиям ФГОС НОО / ООО / СОО.</div>
+        <div class="field">
+            <label>4.1. Предметные результаты</label>
+            <select id="subjectResults">
+                <option value="Предметные результаты сформированы в полном объёме: обучающиеся демонстрируют владение изученным понятийным аппаратом, основными алгоритмами и способами деятельности по предмету.">Высокий уровень — предметные результаты сформированы в полном объёме</option>
+                <option value="Предметные результаты сформированы преимущественно на базовом уровне; отдельные элементы предметных знаний и умений требуют доработки.">Средний уровень — преимущественно базовый уровень, отдельные элементы требуют доработки</option>
+                <option value="Предметные результаты сформированы фрагментарно: выявлены существенные пробелы в освоении ключевых предметных понятий, алгоритмов и способов деятельности.">Низкий уровень — фрагментарное освоение, существенные пробелы</option>
+            </select>
+            <div class="subfield">
+                <div class="hint">Конкретные предметные дефициты:</div>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" class="subjectDeficit" value="владение орфографической и пунктуационной грамотностью, нормами построения текста">Владение орфографической/пунктуационной грамотностью, нормы построения текста</label>
+                    <label><input type="checkbox" class="subjectDeficit" value="владение вычислительными навыками, умение решать текстовые и прикладные задачи">Вычислительные навыки, решение текстовых и прикладных задач</label>
+                    <label><input type="checkbox" class="subjectDeficit" value="умение работать с информацией, представленной в знаково-символической форме (схемы, таблицы, графики, карты)">Работа со знаково-символической информацией (схемы, таблицы, графики, карты)</label>
+                    <label><input type="checkbox" class="subjectDeficit" value="умение применять знания в изменённых и новых учебных ситуациях">Применение знаний в изменённых и новых учебных ситуациях</label>
+                    <label><input type="checkbox" class="subjectDeficit" value="владение лексико-грамматическими и коммуникативными нормами изучаемого языка">Лексико-грамматические и коммуникативные нормы языка</label>
+                </div>
+            </div>
+        </div>
+        <div class="field">
+            <label>4.2. Метапредметные результаты (УУД)</label>
+            <div class="hint">Познавательные УУД:</div>
+            <select id="cognitiveUUD">
+                <option value="Познавательные УУД сформированы: обучающиеся умеют анализировать информацию, строить логические рассуждения, использовать знаково-символические средства.">Высокий уровень — анализ, логические рассуждения, работа со знаковыми системами</option>
+                <option value="Познавательные УУД сформированы на базовом уровне: обучающиеся способны извлекать явную информацию, однако испытывают трудности при анализе, синтезе и установлении причинно-следственных связей.">Базовый уровень — извлечение явной информации, трудности с анализом и синтезом</option>
+                <option value="Познавательные УУД сформированы недостаточно: обучающиеся испытывают затруднения при работе с текстом, таблицами, схемами, построении простых выводов.">Низкий уровень — затруднения с анализом текста, таблиц, схем, построением выводов</option>
+            </select>
+            <div class="hint" style="margin-top:12px;">Коммуникативные УУД:</div>
+            <select id="communicativeUUD">
+                <option value="Коммуникативные УУД сформированы: обучающиеся грамотно формулируют ответы, аргументируют свою позицию, участвуют в учебном диалоге.">Высокий уровень — грамотная формулировка ответов, аргументация, учебный диалог</option>
+                <option value="Коммуникативные УУД сформированы частично: обучающиеся испытывают трудности при развёрнутом ответе, устной и письменной аргументации.">Частично — трудности с развёрнутым ответом и аргументацией</option>
+                <option value="Коммуникативные УУД сформированы слабо: обучающиеся не могут чётко сформулировать мысль, выстроить связный ответ, соблюсти речевые нормы.">Низкий уровень — неспособность сформулировать мысль, построить связный ответ</option>
+            </select>
+            <div class="hint" style="margin-top:12px;">Регулятивные УУД:</div>
+            <select id="regulatoryUUD">
+                <option value="Регулятивные УУД сформированы: обучающиеся умеют планировать свою деятельность, осуществлять самоконтроль и самооценку, распределять время.">Высокий уровень — планирование, самоконтроль, самооценка, распределение времени</option>
+                <option value="Регулятивные УУД сформированы частично: обучающиеся принимают учебную задачу, однако испытывают трудности с самоконтролем, планированием и распределением времени.">Частично — трудности с самоконтролем, планированием, распределением времени</option>
+                <option value="Регулятивные УУД сформированы слабо: обучающиеся не осуществляют самоконтроль, не проверяют выполненную работу, не соотносят результат с условием задачи.">Низкий уровень — отсутствие самоконтроля, не проверяют работу, не соотносят результат с условием</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>4.3. Личностные результаты</label>
+            <select id="personalResults">
+                <option value="Личностные результаты сформированы: у обучающихся преобладает учебно-познавательный интерес, мотивация к обучению, адекватная самооценка, готовность к саморазвитию.">Высокий уровень — устойчивая мотивация, адекватная самооценка, готовность к саморазвитию</option>
+                <option value="Личностные результаты сформированы преимущественно: мотивация к обучению нестабильна, самооценка частично адекватна, элементы самоопределения присутствуют.">Средний уровень — нестабильная мотивация, частично адекватная самооценка</option>
+                <option value="Личностные результаты сформированы недостаточно: преобладает внешняя мотивация, самооценка занижена или завышена, навыки самоопределения и смыслообразования слабо выражены.">Низкий уровень — внешняя мотивация, неадекватная самооценка, слабое самоопределение</option>
+            </select>
+            <div class="subfield">
+                <div class="hint">Конкретные личностные дефициты:</div>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" class="personalDeficit" value="сниженный учебно-познавательный интерес и мотивация к изучению предмета">Сниженный учебно-познавательный интерес и мотивация</label>
+                    <label><input type="checkbox" class="personalDeficit" value="неадекватная самооценка (заниженная или завышенная), неумение осознавать причины успеха/неуспеха">Неадекватная самооценка, неумение осознавать причины успеха/неуспеха</label>
+                    <label><input type="checkbox" class="personalDeficit" value="слабая ориентация на смыслообразование («что я знаю и зачем мне это нужно») и нравственно-этическую оценку">Слабое смыслообразование и нравственно-этическая оценка</label>
+                    <label><input type="checkbox" class="personalDeficit" value="недостаточная готовность к саморазвитию и самообразованию">Недостаточная готовность к саморазвитию и самообразованию</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- БЛОК 5 -->
+    <div class="block">
+        <h2>Блок 5. Выводы и методические рекомендации</h2>
+        <div class="field">
+            <label>5.1. Работа со всем классом</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" class="classWork" value="Провести подробный разбор типичных ошибок на ближайшем уроке">Провести подробный разбор типичных ошибок на ближайшем уроке</label>
+                <label><input type="checkbox" class="classWork" value="Скорректировать календарно-тематическое планирование (выделить часы на повторение западающих тем)">Скорректировать КТП (выделить часы на повторение западающих тем)</label>
+                <label><input type="checkbox" class="classWork" value="Включать в организационную часть каждого урока 5-минутные задания по проблемным темам">5-минутные задания по проблемным темам в начале каждого урока</label>
+                <label><input type="checkbox" class="classWork" value="Усилить работу по обучению смысловому чтению и анализу условий задач">Усилить работу по обучению смысловому чтению и анализу условий задач</label>
+            </div>
+        </div>
+        <div class="field">
+            <label>5.2. Адресная (индивидуальная) работа</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" class="indWork" value="Организовать индивидуальные консультации для учащихся «группы риска»">Индивидуальные консультации для учащихся «группы риска»</label>
+                <label><input type="checkbox" class="indWork" value="Разработать разноуровневые домашние задания (карточки) для сильных и слабых учеников">Разноуровневые домашние задания (карточки)</label>
+                <label><input type="checkbox" class="indWork" value="Проинформировать родителей учеников с низкими результатами, дать рекомендации для домашней работы">Проинформировать родителей и дать рекомендации для домашней работы</label>
+            </div>
+        </div>
+        <div class="field">
+            <label>5.3. Сроки устранения пробелов</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" class="terms" value="В течение следующей учебной недели">В течение следующей учебной недели</label>
+                <label><input type="checkbox" class="terms" value="В течение текущей четверти / полугодия">В течение текущей четверти / полугодия</label>
+                <label><input type="checkbox" class="terms" value="На протяжении всего учебного года (системное повторение)">На протяжении всего учебного года (системное повторение)</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- БЛОК ИИ -->
+    <div class="block ai">
+        <h2>🤖 ИИ-генерация связного текста</h2>
+        <div class="ai-note">
+            <b>Как это работает:</b> кнопка <b>«✨ Связный текст»</b> превращает выбранные пункты в готовый профессиональный текст прямо в браузере — без интернета и внешних сервисов (все данные остаются на вашем компьютере).<br>
+            Если нужен более «литературный» вариант — нажмите <b>«📋 Промпт для нейросети»</b>, скопируйте и вставьте в ChatGPT / GigaChat / YandexGPT.
+        </div>
+    </div>
+
+    <div class="buttons">
+        <button class="btn-generate" onclick="generateReport()">📊 Структурированная справка</button>
+        <button class="btn-ai" onclick="generateLinkedText()">✨ Связный текст (ИИ-шаблоны)</button>
+        <button class="btn-prompt" onclick="copyPrompt()">📋 Промпт для нейросети</button>
+        <button class="btn-word" onclick="exportToWord()">📄 Скачать в Word</button>
+        <button class="btn-clear" onclick="clearForm()">🗑 Очистить</button>
+        <button class="btn-copy" onclick="copyReport()">📋 Копировать текст</button>
+    </div>
+
+    <div class="output" id="output"></div>
+</div>
+
+<footer>
+    Конструктор справки · автор <span class="author">natalja vasiljeva</span> · 2026
+</footer>
+
+<script>
+function getChecked(className) {
+    return Array.from(document.querySelectorAll('.' + className + ':checked')).map(cb => cb.value);
+}
+
+/* ===== СТРУКТУРИРОВАННАЯ СПРАВКА ===== */
+function generateReport() {
+    const data = collectData();
+    if (!data) return;
+
+    let text = '';
+    text += 'СПРАВКА\nпо результатам проведения: ' + data.workType + '\n';
+    text += 'Ступень обучения: ' + data.eduLevel + '.\n';
+    text += 'Предметная область: ' + data.subjectType + '.\n\n';
+
+    text += '1. СТАТИСТИЧЕСКИЕ ПОКАЗАТЕЛИ\n';
+    text += '• ' + data.successRate + '\n';
+    text += '• ' + data.quality + '\n';
+    text += '• ' + data.correspondence + '\n\n';
+
+    text += '2. КАЧЕСТВЕННЫЙ АНАЛИЗ РЕЗУЛЬТАТОВ\n';
+    text += 'Наиболее успешно учащиеся справились со следующими типами заданий:\n';
+    data.bestTasks.forEach(t => text += '   — ' + t + ';\n');
+    text = text.slice(0, -2) + '.\n\n';
+
+    text += 'Выявлены трудности / западающие темы:\n';
+    data.weakTopics.forEach(t => text += '   — ' + t + ';\n');
+    text = text.slice(0, -2) + '.\n\n';
+
+    text += '3. СФОРМИРОВАННОСТЬ ПЛАНИРУЕМЫХ РЕЗУЛЬТАТОВ ФГОС\n';
+    text += '3.1. Предметные результаты:\n';
+    text += '   ' + data.subjectResults + '\n';
+    if (data.subjectDeficit.length) {
+        text += '   Выявленные предметные дефициты:\n';
+        data.subjectDeficit.forEach(t => text += '      — ' + t + ';\n');
+        text = text.slice(0, -2) + '.\n';
+    }
+    text += '\n';
+    text += '3.2. Метапредметные результаты (УУД):\n';
+    text += '   • Познавательные УУД: ' + data.cognitiveUUD + '\n';
+    text += '   • Коммуникативные УУД: ' + data.communicativeUUD + '\n';
+    text += '   • Регулятивные УУД: ' + data.regulatoryUUD + '\n\n';
+    text += '3.3. Личностные результаты:\n';
+    text += '   ' + data.personalResults + '\n';
+    if (data.personalDeficit.length) {
+        text += '   Выявленные личностные дефициты:\n';
+        data.personalDeficit.forEach(t => text += '      — ' + t + ';\n');
+        text = text.slice(0, -2) + '.\n';
+    }
+    text += '\n';
+
+    text += '4. ВЫВОДЫ И МЕТОДИЧЕСКИЕ РЕКОМЕНДАЦИИ\n';
+    if (data.classWork.length) {
+        text += '4.1. Работа со всем классом:\n';
+        data.classWork.forEach(t => text += '   • ' + t + ';\n');
+        text = text.slice(0, -2) + '.\n\n';
+    }
+    if (data.indWork.length) {
+        text += '4.2. Адресная (индивидуальная) работа:\n';
+        data.indWork.forEach(t => text += '   • ' + t + ';\n');
+        text = text.slice(0, -2) + '.\n\n';
+    }
+    if (data.terms.length) {
+        text += '4.3. Сроки устранения пробелов:\n';
+        data.terms.forEach(t => text += '   • ' + t + ';\n');
+        text = text.slice(0, -2) + '.\n\n';
+    }
+
+    text += 'Учитель: _________________________ / _________________________ /\n';
+    text += 'Дата: «___» ____________ 20___ г.\n';
+    text += '\n──────────────────────────────────────\n';
+    text += 'Справка сформирована в конструкторе\n';
+    text += '© natalja vasiljeva, 2026\n';
+
+    showOutput(text);
+}
+
+/* ===== СВЯЗНЫЙ ТЕКСТ (ИИ-ШАБЛОНЫ) ===== */
+function generateLinkedText() {
+    const data = collectData();
+    if (!data) return;
+
+    // Определяем уровень общей картины
+    const successLevel = data.successRate.includes('Абсолютная') ? 'высокий' :
+                         data.successRate.includes('Высокая') ? 'достаточно высокий' : 'требующий особого внимания';
+    const qualityLevel = data.quality.includes('Высокое') ? 'высокий' :
+                         data.quality.includes('Среднее') ? 'средний' : 'ниже среднего';
+
+    // Определяем общий уровень УУД по выбору в выпадающих списках
+    const uudLevel = (sel) => sel.includes('сформированы:') || sel.includes('Высокий') ? 'высокий' :
+                              sel.includes('базовом') || sel.includes('частично') ? 'базовый' : 'низкий';
+    const cogLvl = uudLevel(data.cognitiveUUD);
+    const comLvl = uudLevel(data.communicativeUUD);
+    const regLvl = uudLevel(data.regulatoryUUD);
+
+    let text = '';
+
+    // === ШАПКА ===
+    text += 'АНАЛИТИЧЕСКАЯ СПРАВКА\n';
+    text += 'по результатам проведения ' + data.workType.toLowerCase() + '\n';
+    text += 'по предметам ' + data.subjectType + '\n';
+    text += '(' + data.eduLevel + ')\n\n';
+
+    // === ВВЕДЕНИЕ ===
+    text += 'В соответствии с планом внутришкольного контроля и в целях оценки уровня сформированности планируемых результатов освоения основной образовательной программы была проведена ' + data.workType.toLowerCase() + '. Диагностическая работа охватила обучающихся ' + data.eduLevel + ' предметной области «' + data.subjectType + '».\n\n';
+
+    // === СТАТИСТИКА ===
+    text += '1. АНАЛИЗ СТАТИСТИЧЕСКИХ ПОКАЗАТЕЛЕЙ\n\n';
+    text += 'По итогам проверки зафиксирован ' + successLevel + ' уровень успеваемости: ' + data.successRate.toLowerCase() + '. Показатель качества знаний находится на ' + qualityLevel + ' уровне — ' + data.quality.toLowerCase() + '.\n\n';
+    text += 'Сопоставление результатов проверочной работы с текущей успеваемостью показало: ' + data.correspondence.toLowerCase() + '\n\n';
+
+    // === КАЧЕСТВЕННЫЙ АНАЛИЗ ===
+    text += '2. КАЧЕСТВЕННЫЙ АНАЛИЗ ВЫПОЛНЕНИЯ РАБОТЫ\n\n';
+    text += 'Качественный анализ выполнения заданий позволил выявить как устойчиво сформированные умения, так и зоны образовательных дефицитов.\n\n';
+    text += 'Наиболее успешно обучающиеся справились с заданиями, ориентированными на: ' + joinListRu(data.bestTasks) + '. Данные результаты свидетельствуют о достаточном уровне освоения базовых предметных умений и способности учащихся применять их в стандартных учебных ситуациях.\n\n';
+    text += 'Вместе с тем выявлены затруднения при выполнении заданий, связанных со следующими видами деятельности: ' + joinListRu(data.weakTopics) + '. Указанные трудности носят системный характер и требуют целенаправленной коррекционной работы.\n\n';
+
+    // === ФГОС ===
+    text += '3. СФОРМИРОВАННОСТЬ ПЛАНИРУЕМЫХ РЕЗУЛЬТАТОВ ФГОС\n\n';
+
+    text += '3.1. Предметные результаты. ' + data.subjectResults;
+    if (data.subjectDeficit.length) {
+        text += ' В качестве наиболее значимых предметных дефицитов выявлены: ' + joinListRu(data.subjectDeficit) + '.';
+    }
+    text += '\n\n';
+
+    text += '3.2. Метапредметные результаты (УУД).\n';
+    text += 'Уровень сформированности познавательных УУД оценивается как ' + cogLvl + ': ' + data.cognitiveUUD.toLowerCase() + '\n';
+    text += 'Уровень сформированности коммуникативных УУД — ' + comLvl + ': ' + data.communicativeUUD.toLowerCase() + '\n';
+    text += 'Уровень сформированности регулятивных УУД — ' + regLvl + ': ' + data.regulatoryUUD.toLowerCase() + '\n\n';
+
+    text += '3.3. Личностные результаты. ' + data.personalResults;
+    if (data.personalDeficit.length) {
+        text += ' Обращают на себя внимание следующие личностные дефициты: ' + joinListRu(data.personalDeficit) + '.';
+    }
+    text += '\n\n';
+
+    // === РЕКОМЕНДАЦИИ ===
+    text += '4. ВЫВОДЫ И МЕТОДИЧЕСКИЕ РЕКОМЕНДАЦИИ\n\n';
+    text += 'На основании проведённого анализа можно сделать вывод о необходимости реализации комплекса мер, направленных на устранение выявленных образовательных дефицитов и повышение качества обучения.\n\n';
+
+    if (data.classWork.length) {
+        text += '4.1. В рамках работы со всем классом рекомендуется:\n';
+        data.classWork.forEach((t, i) => {
+            const prefix = i === 0 ? 'Провести' :
+                           i === 1 ? 'Скорректировать' :
+                           i === 2 ? 'Систематически включать' : 'Усилить';
+            text += '   ' + (i+1) + ') ' + t + ';\n';
+        });
+        text = text.slice(0, -2) + '.\n\n';
+    }
+
+    if (data.indWork.length) {
+        text += '4.2. В рамках адресной (индивидуальной) работы необходимо:\n';
+        data.indWork.forEach((t, i) => {
+            text += '   ' + (i+1) + ') ' + t + ';\n';
+        });
+        text = text.slice(0, -2) + '.\n\n';
+    }
+
+    if (data.terms.length) {
+        text += '4.3. Установлены следующие сроки устранения выявленных пробелов: ' + joinListRu(data.terms) + '.\n\n';
+    }
+
+    // === ПОДПИСЬ ===
+    text += 'Учитель: _________________________ / _________________________ /\n';
+    text += 'Дата: «___» ____________ 20___ г.\n\n';
+    text += '──────────────────────────────────────\n';
+    text += 'Справка сформирована в конструкторе\n';
+    text += '© natalja vasiljeva, 2026\n';
+
+    showOutput(text);
+}
+
+/* Вспомогательная функция для красивого соединения списков по-русски */
+function joinListRu(arr) {
+    if (arr.length === 0) return '';
+    if (arr.length === 1) return arr[0].toLowerCase();
+    if (arr.length === 2) return arr[0].toLowerCase() + ' и ' + arr[1].toLowerCase();
+    let result = '';
+    for (let i = 0; i < arr.length; i++) {
+        if (i < arr.length - 1) result += arr[i].toLowerCase() + ', ';
+        else result += 'а также ' + arr[i].toLowerCase();
+    }
+    return result;
+}
+
+/* ===== СБОР ДАННЫХ ===== */
+function collectData() {
+    const bestTasks = getChecked('bestTasks');
+    const weakTopics = getChecked('weakTopics');
+
+    if (bestTasks.length === 0 || weakTopics.length === 0) {
+        alert('Пожалуйста, выберите хотя бы по одному пункту в блоке 3 (качественный анализ).');
+        return null;
+    }
+
+    return {
+        workType: document.getElementById('workType').value,
+        eduLevel: document.getElementById('educationLevel').value,
+        subjectType: document.getElementById('subjectType').value,
+        successRate: document.getElementById('successRate').value,
+        quality: document.getElementById('quality').value,
+        correspondence: document.getElementById('correspondence').value,
+        bestTasks: bestTasks,
+        weakTopics: weakTopics,
+        subjectResults: document.getElementById('subjectResults').value,
+        subjectDeficit: getChecked('subjectDeficit'),
+        cognitiveUUD: document.getElementById('cognitiveUUD').value,
+        communicativeUUD: document.getElementById('communicativeUUD').value,
+        regulatoryUUD: document.getElementById('regulatoryUUD').value,
+        personalResults: document.getElementById('personalResults').value,
+        personalDeficit: getChecked('personalDeficit'),
+        classWork: getChecked('classWork'),
+        indWork: getChecked('indWork'),
+        terms: getChecked('terms')
+    };
+}
+
+function showOutput(text) {
+    const out = document.getElementById('output');
+    out.textContent = text;
+    out.classList.add('visible');
+    out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function clearForm() {
+    document.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+    const out = document.getElementById('output');
+    out.classList.remove('visible');
+    out.textContent = '';
+}
+
+function copyReport() {
+    const out = document.getElementById('output');
+    if (!out.textContent.trim()) {
+        alert('Сначала сформируйте справку.');
+        return;
+    }
+    copyToClipboard(out.textContent, 'Текст скопирован в буфер обмена.');
+}
+
+/* ===== ПРОМПТ ДЛЯ НЕЙРОСЕТИ ===== */
+function copyPrompt() {
+    const data = collectData();
+    if (!data) return;
+
+    // Собираем структурированный текст как основу
+    let structured = '';
+    structured += 'Тип работы: ' + data.workType + '\n';
+    structured += 'Ступень: ' + data.eduLevel + '\n';
+    structured += 'Предметная область: ' + data.subjectType + '\n';
+    structured += 'Успеваемость: ' + data.successRate + '\n';
+    structured += 'Качество знаний: ' + data.quality + '\n';
+    structured += 'Соответствие оценкам: ' + data.correspondence + '\n';
+    structured += 'Лучше всего справились: ' + data.bestTasks.join('; ') + '\n';
+    structured += 'Запали темы: ' + data.weakTopics.join('; ') + '\n';
+    structured += 'Предметные результаты: ' + data.subjectResults + '\n';
+    if (data.subjectDeficit.length) structured += 'Предметные дефициты: ' + data.subjectDeficit.join('; ') + '\n';
+    structured += 'Познавательные УУД: ' + data.cognitiveUUD + '\n';
+    structured += 'Коммуникативные УУД: ' + data.communicativeUUD + '\n';
+    structured += 'Регулятивные УУД: ' + data.regulatoryUUD + '\n';
+    structured += 'Личностные результаты: ' + data.personalResults + '\n';
+    if (data.personalDeficit.length) structured += 'Личностные дефициты: ' + data.personalDeficit.join('; ') + '\n';
+    if (data.classWork.length) structured += 'Работа с классом: ' + data.classWork.join('; ') + '\n';
+    if (data.indWork.length) structured += 'Адресная работа: ' + data.indWork.join('; ') + '\n';
+    if (data.terms.length) structured += 'Сроки: ' + data.terms.join('; ') + '\n';
+
+    const prompt = `Ты — опытный методист и заместитель директора по учебно-воспитательной работе с 20-летним стажем. Переработай структурированные данные аналитической справки в связный профессиональный педагогический текст.
+
+Требования:
+1. Стиль — официально-деловой, но не канцелярский. Текст должен быть живым и конкретным.
+2. Структура: введение (цель и основание), основная часть (анализ с конкретикой), выводы и рекомендации.
+3. Используй профессиональную терминологию: ФГОС, УУД, планируемые результаты, внутришкольный контроль, адресная работа, группа риска, дифференцированный подход.
+4. Связки между абзацами логичные («Анализ результатов показал…», «Вместе с тем выявлены…», «На основании вышеизложенного…»).
+5. Не добавляй выдуманных цифр — используй только то, что дано.
+6. Объём: 1,5–2 страницы (500–700 слов).
+7. В конце оставь место для подписи учителя и даты.
+
+Данные для переработки:
+
+${structured}`;
+
+    copyToClipboard(prompt, 'Промпт для нейросети скопирован! Вставьте его в ChatGPT / GigaChat / YandexGPT.');
+}
+
+function copyToClipboard(text, successMsg) {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => alert(successMsg))
+            .catch(() => fallbackCopy(text, successMsg));
+    } else {
+        fallbackCopy(text, successMsg);
+    }
+}
+
+function fallbackCopy(text, successMsg) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert(successMsg);
+}
+
+/* ===== ЭКСПОРТ В WORD ===== */
+function exportToWord() {
+    const out = document.getElementById('output');
+    if (!out.textContent.trim()) {
+        alert('Сначала сформируйте справку (структурированную или связную).');
+        return;
+    }
+
+    const lines = out.textContent.split('\n');
+    let htmlBody = '';
+
+    lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+            htmlBody += '<p style="margin:0;">&nbsp;</p>';
+            return;
+        }
+        if (/^СПРАВКА$|^АНАЛИТИЧЕСКАЯ СПРАВКА$/.test(trimmed)) {
+            htmlBody += '<p style="text-align:center; font-weight:bold; font-size:16pt; margin:0 0 6pt 0;">' + escapeHtml(trimmed) + '</p>';
+        }
+        else if (/^\d+\.\s+[А-ЯA-ZА-Я]/.test(trimmed)) {
+            htmlBody += '<p style="font-weight:bold; font-size:13pt; margin:10pt 0 4pt 0;">' + escapeHtml(trimmed) + '</p>';
+        }
+        else if (/^\d+\.\d+\./.test(trimmed)) {
+            htmlBody += '<p style="font-weight:bold; margin:6pt 0 2pt 0;">' + escapeHtml(trimmed) + '</p>';
+        }
+        else if (trimmed.includes('natalja vasiljeva')) {
+            htmlBody += '<p style="text-align:center; font-style:italic; color:#555; margin-top:14pt;">' + escapeHtml(trimmed) + '</p>';
+        }
+        else if (trimmed.startsWith('──')) {
+            htmlBody += '<p style="text-align:center; color:#888;">' + escapeHtml(trimmed) + '</p>';
+        }
+        else if (trimmed.startsWith('Учитель:') || trimmed.startsWith('Дата:')) {
+            htmlBody += '<p style="margin:2pt 0;">' + escapeHtml(trimmed) + '</p>';
+        }
+        else {
+            htmlBody += '<p style="margin:2pt 0 2pt 20pt; text-align:justify;">' + escapeHtml(trimmed) + '</p>';
+        }
+    });
+
+    const html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office"
+              xmlns:w="urn:schemas-microsoft-com:office:word"
+              xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <meta charset="UTF-8">
+            <title>Справка</title>
+            <!--[if gte mso 9]>
+            <xml>
+                <w:WordDocument>
+                    <w:View>Print</w:View>
+                    <w:Zoom>100</w:Zoom>
+                </w:WordDocument>
+            </xml>
+            <![endif]-->
+            <style>
+                @page { size: A4; margin: 2cm 1.5cm 2cm 3cm; }
+                body { font-family: 'Times New Roman', serif; font-size: 14pt; }
+            </style>
+        </head>
+        <body>${htmlBody}</body>
+        </html>`;
+
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+
+    const workType = document.getElementById('workType').value;
+    let fileName = 'Справка';
+    if (workType.includes('ВПР')) fileName = 'Справка_ВПР';
+    else if (workType.includes('Итоговая')) fileName = 'Справка_Итоговая_работа';
+    else if (workType.includes('Тематическая')) fileName = 'Справка_Тематическая_работа';
+    else if (workType.includes('Стартовая')) fileName = 'Справка_Стартовая_работа';
+    else if (workType.includes('Пробный')) fileName = 'Справка_Пробный_экзамен';
+
+    a.download = fileName + '.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+</body>
+</html>
